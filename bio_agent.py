@@ -84,19 +84,25 @@ def get_disease_associations(ensembl_id: str):
 def find_disease_match(associations: list, disease_query: str):
     disease_query = disease_query.lower().strip()
 
+    # Aliases: map common terms to what Open Targets actually calls them
+    aliases = {
+        "hiv infection": ["hiv", "human immunodeficiency", "acquired immunodeficiency", "aids"],
+        "lung cancer": ["lung carcinoma", "lung adenocarcinoma", "non-small cell lung"],
+        "breast cancer": ["breast carcinoma", "breast adenocarcinoma"],
+    }
+
+    search_terms = [disease_query] + aliases.get(disease_query, disease_query.split())
+
     best_match = None
     best_score = 0
 
     for row in associations:
         name = row["disease"]["name"].lower()
-
-        # Flexible matching
-        if any(word in name for word in disease_query.split()):
+        if any(term in name for term in search_terms):
             if row["score"] > best_score:
                 best_match = row
                 best_score = row["score"]
 
-    # fallback → strongest association
     if not best_match and associations:
         best_match = max(associations, key=lambda x: x["score"])
 
@@ -115,7 +121,9 @@ def parse_evidence_types(datatype_scores: list):
         "literature": "Mentioned in research papers",
         "animal_model": "Animal studies",
         "rna_expression": "Expression changes",
-        "text_mining": "Text mining"
+        "text_mining": "Text mining",
+        "clinical":            "Clinical trial evidence",        # ← add
+        "genetic_literature":  "Genetic evidence from literature"
     }
 
     parsed = {}
@@ -137,24 +145,34 @@ def rule_based_assessment(overall_score: float, evidence: dict, disease_name: st
     disease_lower = disease_name.lower()
     is_pathogen = any(x in disease_lower for x in ["virus", "hiv", "bacteria"])
 
-    # Boost if known drug target
-    if evidence.get("Existing drugs target this protein", 0) > 0.2:
+    has_drug    = evidence.get("Existing drugs target this protein", 0) > 0.2
+    clinical    = evidence.get("Clinical trial evidence", 0)
+    genetic     = evidence.get("Genetic mutations in patients", 0)
+    somatic     = evidence.get("Somatic mutations in disease tissue", 0)
+    pathway     = evidence.get("Protein is in disease pathway", 0)
+
+    # Boost 1: known approved drug
+    if has_drug:
         overall_score = max(overall_score, 0.65)
         flags.append("Validated drug target (existing drugs)")
 
-    # Genetic evidence (human targets only)
-    if not is_pathogen:
-        if evidence.get("Genetic mutations in patients", 0) > 0.3:
-            flags.append("Strong genetic evidence")
+    # Boost 2: strong clinical + strong somatic (catches amplification-driven targets like ERBB2)
+    if clinical > 0.5:
+        flags.append("Strong clinical trial evidence")
+        if overall_score >= 0.6 and (has_drug or somatic > 0.4):
+            overall_score = max(overall_score, 0.75)
 
-        if evidence.get("Genetic mutations in patients", 0) < 0.1:
+    if not is_pathogen:
+        if genetic > 0.3:
+            flags.append("Strong genetic evidence")
+        if somatic > 0.4:
+            flags.append("Strong somatic mutation evidence")
+        if genetic < 0.1 and somatic < 0.1:
             warnings.append("Weak genetic support")
 
-    # Pathway support
-    if evidence.get("Protein is in disease pathway", 0) > 0.2:
+    if pathway > 0.2:
         flags.append("Involved in disease pathway")
 
-    # Final classification
     if overall_score >= 0.7:
         verdict = "STRONG TARGET"
     elif overall_score >= 0.5:
