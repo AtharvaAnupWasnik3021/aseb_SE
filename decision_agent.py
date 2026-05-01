@@ -1,9 +1,9 @@
 import json
 from typing import Dict, Optional, Tuple
 
-from agent_1 import StructureAgent
-from bio_agent import BiologyAgent
-from chem_agent import ChemistryAgent
+from structure_agent import StructureAgent
+from biology_agent import BiologyAgent
+from chemistry_agent import ChemistryAgent
 from safety_agent import SafetyAgent
 
 
