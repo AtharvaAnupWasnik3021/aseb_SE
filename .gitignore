@@ -1,9 +1,0 @@
-.venv/
-.codex-venv/
-__pycache__/
-*.py[cod]
-*.pdb
-*.ent
-final_output.json
-final_visualization.html
-protein_visualization.html
