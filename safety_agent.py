@@ -228,9 +228,9 @@ class SafetyAgent:
     # -------------------------------
     # MAIN RUN
     # -------------------------------
-    def run(self):
+    def run(self, ensembl_id=None):
 
-        self.ensembl_id = self.get_ensembl_id()
+        self.ensembl_id = ensembl_id or self.get_ensembl_id()
         if not self.ensembl_id:
             return {"error": "Gene not found"}
 

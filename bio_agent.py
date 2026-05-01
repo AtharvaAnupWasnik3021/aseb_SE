@@ -83,6 +83,7 @@ def get_disease_associations(ensembl_id: str):
 # -------------------------------
 def find_disease_match(associations: list, disease_query: str):
     disease_query = disease_query.lower().strip()
+    query_words = [word for word in disease_query.split() if len(word) > 2]
 
     # Aliases: map common terms to what Open Targets actually calls them
     aliases = {
@@ -94,14 +95,28 @@ def find_disease_match(associations: list, disease_query: str):
     search_terms = [disease_query] + aliases.get(disease_query, disease_query.split())
 
     best_match = None
-    best_score = 0
+    best_rank = (-1, -1, -1)
 
     for row in associations:
         name = row["disease"]["name"].lower()
-        if any(term in name for term in search_terms):
-            if row["score"] > best_score:
-                best_match = row
-                best_score = row["score"]
+        score = row.get("score", 0)
+
+        if name == disease_query:
+            rank = (5, score, len(name))
+        elif any(term in name for term in search_terms):
+            rank = (4, score, len(name))
+        elif disease_query in name:
+            rank = (3, score, len(name))
+        elif query_words and all(word in name for word in query_words):
+            rank = (2, score, len(name))
+        elif query_words and any(word in name for word in query_words):
+            rank = (1, score, len(name))
+        else:
+            continue
+
+        if rank > best_rank:
+            best_match = row
+            best_rank = rank
 
     if not best_match and associations:
         best_match = max(associations, key=lambda x: x["score"])
@@ -224,3 +239,43 @@ def biology_agent(gene_symbol: str, disease_name: str):
         "warning_signals": assessment["warning_signals"],
         "evidence": evidence
     }
+
+
+class BiologyAgent:
+    """Independent biology evidence agent used by the decision pipeline."""
+
+    def __init__(self, gene_symbol: str, disease_name: str):
+        self.gene_symbol = gene_symbol
+        self.disease_name = disease_name
+
+    def run(self):
+        ensembl_id, full_name = get_ensembl_id(self.gene_symbol)
+        if not ensembl_id:
+            return {"error": "Gene not found"}
+
+        associations = get_disease_associations(ensembl_id)
+        if not associations:
+            return {"error": "No disease associations found", "ensembl_id": ensembl_id}
+
+        match = find_disease_match(associations, self.disease_name)
+        if not match:
+            return {"error": "No matching disease association", "ensembl_id": ensembl_id}
+
+        evidence = parse_evidence_types(match.get("datatypeScores", []))
+        assessment = rule_based_assessment(
+            match.get("score", 0),
+            evidence,
+            self.disease_name
+        )
+
+        return {
+            "gene_symbol": self.gene_symbol,
+            "gene_name": full_name,
+            "ensembl_id": ensembl_id,
+            "disease": match["disease"]["name"],
+            "overall_score": assessment["overall_score"],
+            "verdict": assessment["verdict"],
+            "positive_signals": assessment["positive_signals"],
+            "warning_signals": assessment["warning_signals"],
+            "evidence": evidence
+        }

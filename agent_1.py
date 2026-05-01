@@ -269,7 +269,7 @@ class StructureAgent:
         pocket = self.detect_pocket(atoms)
 
         if pocket is None:
-            print("✗ No druggable pocket detected.")
+            print("No druggable pocket detected.")
             return None
 
         pocket_res_ids = self.extract_pocket_residues(
@@ -294,9 +294,9 @@ class StructureAgent:
             volume, depth_3d, len(pocket_res_ids), hydrophobic_score
         )
 
-        print(f"✓ Pocket Detected!")
+        print("Pocket detected.")
         print(f"  Volume: {volume} points")
-        print(f"  Depth (3D): {round(depth_3d, 2)} Å")
+        print(f"  Depth (3D): {round(depth_3d, 2)} Angstrom")
         print(f"  Residues: {len(pocket_res_ids)} ({pocket_res_ids[:5]}...)")
         print(f"  Hydrophobic Content: {round(hydrophobic_score, 2)}")
         print(f"  Druggability Score: {round(druggability_score, 2)}")
@@ -349,16 +349,16 @@ class StructureAgent:
         # 2. DEPTH SCORE (optimal 15-40 Angstroms)
         if 15 <= depth <= 40:
             depth_score = 0.8
-            factors.append(f"Depth {depth}Å: Good")
+            factors.append(f"Depth {depth} Angstrom: Good")
         elif 10 <= depth < 15:
             depth_score = 0.5
-            factors.append(f"Depth {depth}Å: Shallow")
+            factors.append(f"Depth {depth} Angstrom: Shallow")
         elif 40 < depth <= 60:
             depth_score = 0.4
-            factors.append(f"Depth {depth}Å: Very deep")
+            factors.append(f"Depth {depth} Angstrom: Very deep")
         else:
             depth_score = 0.1
-            factors.append(f"Depth {depth}Å: Not suitable")
+            factors.append(f"Depth {depth} Angstrom: Not suitable")
         
         # 3. RESIDUE COUNT (optimal 15-35)
         if 15 <= residue_count <= 35:
@@ -395,13 +395,13 @@ class StructureAgent:
         
         # DECISION
         if score > 0.7:
-            decision = "✓ HIGH DRUGGABILITY (Good target)"
+            decision = "HIGH DRUGGABILITY (Good target)"
         elif score > 0.5:
             decision = "◐ MODERATE DRUGGABILITY (Workable)"
         elif score > 0.3:
-            decision = "✗ LOW DRUGGABILITY (Challenging)"
+            decision = "LOW DRUGGABILITY (Challenging)"
         else:
-            decision = "✗✗ NOT DRUGGABLE (Poor target)"
+            decision = "NOT DRUGGABLE (Poor target)"
         
         return score, decision
 
@@ -448,14 +448,14 @@ if __name__ == "__main__":
         print(f"ANALYSIS RESULTS")
         print(f"{'='*50}")
         print(f"Volume: {results['volume']} points")
-        print(f"Depth (3D): {results['depth_3d']} Å")
+        print(f"Depth (3D): {results['depth_3d']} Angstrom")
         print(f"Residue Count: {results['residue_count']}")
         print(f"Hydrophobic Content: {results['hydrophobic_content']*100:.1f}%")
         print(f"Druggability Score: {results['druggability_score']}/1.0")
         print(f"Assessment: {results['assessment']}")
         print(f"Pocket Residues: {results['pocket_residues'][:10]}...")
         print(f"{'='*50}")
-        print(f"✓ Visualization saved to: {output_file}")
+        print(f"Visualization saved to: {output_file}")
         print(f"  Open in browser to view 3D structure")
     else:
-        print("✗ Failed to analyze protein")
+        print("Failed to analyze protein")
