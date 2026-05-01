@@ -5,32 +5,67 @@ from typing import Dict, List
 class SafetyAgent:
 
     OPEN_TARGETS_URL = "https://api.platform.opentargets.org/api/v4/graphql"
+    CHEMBL_URL = "https://www.ebi.ac.uk/chembl/api/data"
 
     def __init__(self, gene_symbol: str):
-        self.gene_symbol = gene_symbol
+        self.gene_symbol = gene_symbol.upper()
         self.ensembl_id = None
         self.results = {}
 
     # -------------------------------
-    # API CALLS
+    # GENERIC API CALL
     # -------------------------------
-    def _query(self, query, variables):
+    def _safe_get(self, url, params=None):
         try:
-            res = requests.post(
-                self.OPEN_TARGETS_URL,
-                json={"query": query, "variables": variables},
-                timeout=10
-            )
-            return res.json()
+            r = requests.get(url, params=params, timeout=10)
+            return r.json()
+        except Exception:
+            return {}
+
+    def _safe_post(self, url, payload):
+        try:
+            r = requests.post(url, json=payload, timeout=10)
+            return r.json()
         except Exception:
             return {}
 
     # -------------------------------
-    # TISSUE EXPRESSION
+    # STEP 1: GET ENSEMBL ID
     # -------------------------------
-    def get_tissue_expression(self):
+    def get_ensembl_id(self):
         query = """
-        query GetExpression($id: String!) {
+        query ($symbol: String!) {
+          search(queryString: $symbol, entityNames: ["target"]) {
+            hits {
+              object {
+                ... on Target {
+                  id
+                  approvedSymbol
+                }
+              }
+            }
+          }
+        }
+        """
+        data = self._safe_post(self.OPEN_TARGETS_URL, {
+            "query": query,
+            "variables": {"symbol": self.gene_symbol}
+        })
+
+        hits = data.get("data", {}).get("search", {}).get("hits", [])
+        for hit in hits:
+            obj = hit.get("object", {})
+            if obj.get("approvedSymbol", "").upper() == self.gene_symbol:
+                return obj["id"]
+
+        return None
+
+    # -------------------------------
+    # STEP 2: TISSUE RISK (OpenTargets fallback)
+    # -------------------------------
+    def tissue_risk(self):
+        query = """
+        query ($id: String!) {
           target(ensemblId: $id) {
             proteinExpression {
               evidence {
@@ -41,183 +76,180 @@ class SafetyAgent:
           }
         }
         """
-        data = self._query(query, {"id": self.ensembl_id})
-        return data.get("data", {}).get("target", {}).get("proteinExpression", {})
 
-    def analyze_tissue_expression(self, data):
-        critical = ["heart", "brain", "liver", "kidney"]
-        risks = []
+        data = self._safe_post(self.OPEN_TARGETS_URL, {
+            "query": query,
+            "variables": {"id": self.ensembl_id}
+        })
+
+        evidence = data.get("data", {}).get("target", {}) \
+                       .get("proteinExpression", {}) \
+                       .get("evidence", [])
+
+        if not evidence:
+            return None
+
+        critical = {"brain": 0.4, "heart": 0.4, "liver": 0.3, "kidney": 0.3}
+        level_weight = {"high": 1.0, "medium": 0.6, "low": 0.2}
+
         penalty = 0
-
-        evidence = data.get("evidence", [])
 
         for item in evidence:
             tissue = item.get("tissue", {}).get("name", "").lower()
             level = item.get("level", "").lower()
 
-            if any(c in tissue for c in critical) and level in ["high", "medium"]:
-                risks.append({
-                    "tissue": tissue,
-                    "level": level
-                })
-                penalty += 0.1 if level == "medium" else 0.2
+            for key in critical:
+                if key in tissue:
+                    penalty += critical[key] * level_weight.get(level, 0.2)
 
-        score = max(0.0, 1.0 - penalty)
-
-        return {
-            "score": score,
-            "risks": risks,
-            "has_data": len(evidence) > 0
-        }
+        return max(0, 1 - penalty)
 
     # -------------------------------
-    # OFF TARGET
+    # STEP 3: GET CHEMBL TARGET
     # -------------------------------
-    def assess_off_target(self):
+    def get_chembl_target(self):
+
+        url = f"{self.CHEMBL_URL}/target/search.json"
+        data = self._safe_get(url, {"q": self.gene_symbol})
+
+        targets = data.get("targets", [])
+        if not targets:
+            return None
+
+        return targets[0]["target_chembl_id"]
+
+    # -------------------------------
+    # STEP 4: GET DRUGS
+    # -------------------------------
+    def get_drugs(self, chembl_id):
+
+        url = f"{self.CHEMBL_URL}/activity.json"
+        data = self._safe_get(url, {"target_chembl_id": chembl_id, "limit": 20})
+
+        return data.get("activities", [])
+
+    # -------------------------------
+    # STEP 5: ADVERSE RISK (FROM DRUGS)
+    # -------------------------------
+    def adverse_risk(self, activities):
+
+        if not activities:
+            return None
+
+        # crude proxy: strong binding drugs → higher side effect risk
+        affinities = []
+
+        for act in activities:
+            val = act.get("standard_value")
+            if val:
+                try:
+                    affinities.append(float(val))
+                except:
+                    continue
+
+        if not affinities:
+            return None
+
+        avg_affinity = sum(affinities) / len(affinities)
+
+        # normalize (lower IC50 = stronger → higher risk)
+        if avg_affinity < 100:
+            risk = 0.8
+        elif avg_affinity < 1000:
+            risk = 0.6
+        else:
+            risk = 0.4
+
+        return 1 - risk
+
+    # -------------------------------
+    # STEP 6: OFF-TARGET (SIMILARITY)
+    # -------------------------------
+    def off_target_risk(self):
+
         query = """
-        query GetSimilar($id: String!) {
+        query ($id: String!) {
           target(ensemblId: $id) {
-            similarEntities(size: 10) {
+            similarEntities(size: 20) {
               results { score }
             }
           }
         }
         """
-        data = self._query(query, {"id": self.ensembl_id})
+
+        data = self._safe_post(self.OPEN_TARGETS_URL, {
+            "query": query,
+            "variables": {"id": self.ensembl_id}
+        })
+
         results = data.get("data", {}).get("target", {}) \
                       .get("similarEntities", {}).get("results", [])
 
         if not results:
-            return {"score": 0.5, "has_data": False}
+            return None
 
-        avg_similarity = sum(x.get("score", 0) for x in results) / len(results)
+        scores = [x.get("score", 0) for x in results]
 
-        return {
-            "score": 1.0 - avg_similarity,
-            "has_data": True
-        }
+        avg = sum(scores) / len(scores)
+        return max(0, 1 - avg)
 
     # -------------------------------
-    # ADVERSE EVENTS
+    # FINAL SAFETY INDEX
     # -------------------------------
-    def get_adverse_events(self):
-        query = """
-        query GetAdverse($id: String!) {
-          target(ensemblId: $id) {
-            adverseEvents {
-              events { name count }
-            }
-          }
-        }
-        """
-        data = self._query(query, {"id": self.ensembl_id})
-        return data.get("data", {}).get("target", {}) \
-                   .get("adverseEvents", {}).get("events", [])
+    def compute(self, tissue, off_target, adverse):
 
-    def analyze_adverse(self, events):
-        if not events:
-            return {"score": 0.5, "has_data": False}
+        components = []
 
-        severity = 0
+        if tissue is not None:
+            components.append((tissue, 0.4))
 
-        for e in events:
-            name = e.get("name", "").lower()
+        if off_target is not None:
+            components.append((off_target, 0.3))
 
-            if any(x in name for x in ["fatal", "death"]):
-                severity = max(severity, 1.0)
-            elif any(x in name for x in ["cardiac", "hepatic"]):
-                severity = max(severity, 0.8)
-            elif any(x in name for x in ["bleeding", "renal"]):
-                severity = max(severity, 0.6)
-            else:
-                severity = max(severity, 0.4)
+        if adverse is not None:
+            components.append((adverse, 0.3))
 
-        return {
-            "score": 1.0 - severity,
-            "has_data": True
-        }
+        if not components:
+            return 0.5, "UNKNOWN"
 
-    # -------------------------------
-    # SAFETY INDEX
-    # -------------------------------
-    def compute_safety_index(self, tissue, off_target, adverse):
+        score = sum(s * w for s, w in components) / sum(w for _, w in components)
 
-        # detect if we actually have data
-        data_flags = [
-            tissue["has_data"],
-            off_target["has_data"],
-            adverse["has_data"]
-        ]
-
-        if not any(data_flags):
-            return 0.5, "⚠️ UNKNOWN - insufficient safety data"
-
-        # weighted score
-        score = (
-            tissue["score"] * 0.35 +
-            off_target["score"] * 0.35 +
-            adverse["score"] * 0.30
-        )
-
-        if score >= 0.8:
-            verdict = "✅ SAFE"
-        elif score >= 0.6:
-            verdict = "⚠️ MODERATE RISK"
-        elif score >= 0.4:
-            verdict = "⚠️ HIGH RISK"
+        if score > 0.75:
+            verdict = "SAFE"
+        elif score > 0.55:
+            verdict = "MODERATE RISK"
+        elif score > 0.35:
+            verdict = "HIGH RISK"
         else:
-            verdict = "🚫 UNSAFE"
+            verdict = "UNSAFE"
 
         return score, verdict
 
     # -------------------------------
-    # MAIN
+    # MAIN RUN
     # -------------------------------
-    def run(self, ensembl_id: str):
+    def run(self):
 
-        self.ensembl_id = ensembl_id
+        self.ensembl_id = self.get_ensembl_id()
+        if not self.ensembl_id:
+            return {"error": "Gene not found"}
 
-        # Pathogen override (critical)
-        if any(x in self.gene_symbol.lower() for x in ["pol", "env", "gag"]):
-            return {
-                "safety_index": 0.7,
-                "safety_interpretation": "⚠️ PATHOGEN TARGET - host toxicity less relevant",
-                "tissue_analysis": {"tissue_risks": []},
-                "off_target_effects": {"selectivity_risk": "LOW"},
-                "side_effects": {"critical_events": []}
-            }
+        tissue = self.tissue_risk()
 
-        tissue = self.analyze_tissue_expression(self.get_tissue_expression())
-        off_target = self.assess_off_target()
-        adverse = self.analyze_adverse(self.get_adverse_events())
+        chembl_id = self.get_chembl_target()
+        activities = self.get_drugs(chembl_id) if chembl_id else []
 
-        score, interpretation = self.compute_safety_index(tissue, off_target, adverse)
+        adverse = self.adverse_risk(activities)
+        off_target = self.off_target_risk()
 
-        self.results = {
+        score, verdict = self.compute(tissue, off_target, adverse)
+
+        return {
             "safety_index": round(score, 3),
-            "safety_interpretation": interpretation,
-            "tissue_analysis": {
-                "tissue_risks": tissue["risks"]
-            },
-            "off_target_effects": {
-                "selectivity_risk": "LOW" if off_target["score"] > 0.6 else
-                                    "MEDIUM" if off_target["score"] > 0.3 else "HIGH"
-            },
-            "side_effects": {
-                "critical_events": []
+            "safety_verdict": verdict,
+            "components": {
+                "tissue": tissue,
+                "off_target": off_target,
+                "adverse": adverse
             }
         }
-
-        return self.results
-
-    def _generate_verdict(self):
-        score = self.results.get("safety_index", 0.5)
-
-        if score >= 0.75:
-            return "✅ SAFE FOR DEVELOPMENT"
-        elif score >= 0.6:
-            return "⚠️ PROCEED WITH CAUTION"
-        elif score >= 0.4:
-            return "🚫 HIGH RISK"
-        else:
-            return "🚫 UNSAFE"

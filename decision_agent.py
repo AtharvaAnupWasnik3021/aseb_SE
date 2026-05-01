@@ -212,9 +212,9 @@ class DecisionAgent:
 if __name__ == "__main__":
 
     agent = DecisionAgent(
-        protein_input="1hsg",
-        gene_symbol="POL",
-        disease_name="HIV infection"
+        protein_input="2ITX",
+        gene_symbol="EGFR",
+        disease_name="breast cancer"
     )
 
     result = agent.run()
@@ -224,3 +224,7 @@ if __name__ == "__main__":
 
     print("\n✓ Saved to final_output.json")
     print("✓ Visualization saved to final_visualization.html")
+    print("Gene:", self.gene_symbol)
+    print("Disease:", self.disease_name)
+    print("Integrated Score:", result["decision"]["integrated_score"]) 
+    print("Final Verdict:", result["decision"]["final_verdict"])
