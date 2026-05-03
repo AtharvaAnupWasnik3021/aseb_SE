@@ -1,3 +1,19 @@
+Metadata-Version: 2.4
+Name: aseb-se
+Version: 0.1.0
+Summary: Add your description here
+Requires-Python: >=3.12
+Description-Content-Type: text/markdown
+Requires-Dist: biopython
+Requires-Dist: fastapi
+Requires-Dist: numpy
+Requires-Dist: py3Dmol
+Requires-Dist: python-multipart
+Requires-Dist: requests
+Requires-Dist: scikit-learn
+Requires-Dist: scipy
+Requires-Dist: streamlit
+
 # ASEB Drug Target Decision Pipeline
 
 This project evaluates whether a protein target should be considered for drug discovery.
@@ -11,14 +27,20 @@ The pipeline uses four independent agents:
 
 The `DecisionAgent` combines the four outputs into an integrated score, summary, final verdict, and recommendation.
 
+## Setup
 
+Create a virtual environment and install dependencies:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e .
+```
 
 ## Run
-for backend:
-python -m uvicorn api:app --port 8000 --timeout-keep-alive 300 
 
-for frontend, open:
-(http://localhost:8000/)
+```powershell
+.\.venv\Scripts\python.exe decision_agent.py
+```
 
 By default, the sample run evaluates:
 

@@ -1,0 +1,9 @@
+biopython
+fastapi
+numpy
+py3Dmol
+python-multipart
+requests
+scikit-learn
+scipy
+streamlit

@@ -6,7 +6,8 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from typing import Optional
-
+from pydantic import BaseModel
+from decision_agent import DecisionAgent
 from Bio.PDB import PDBParser, PDBList
 from scipy.spatial import KDTree, Delaunay
 from sklearn.cluster import DBSCAN
@@ -22,6 +23,9 @@ app.add_middleware(
 )
 
 HYDROPHOBIC = {"ALA", "VAL", "LEU", "ILE", "MET", "PHE", "TRP", "PRO"}
+
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 
 # -------------------------------
@@ -223,9 +227,8 @@ def run_analysis(pdb_file: str):
 # API
 # -------------------------------
 @app.get("/")
-def root():
-    return {"status": "ok", "service": "StructureAgent v2"}
-
+def serve_ui():
+    return FileResponse("drug_discovery_ui.html")
 
 @app.post("/analyze")
 async def analyze(
@@ -252,6 +255,23 @@ async def analyze(
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
+class RunRequest(BaseModel):
+    protein_input: str
+    gene_symbol: str
+    disease_name: str
+
+@app.post("/run")
+def run_pipeline(req: RunRequest):
+    try:
+        agent = DecisionAgent(
+            protein_input=req.protein_input,
+            gene_symbol=req.gene_symbol,
+            disease_name=req.disease_name
+        )
+        result = agent.run()
+        return JSONResponse(content=result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/health")
 def health():
