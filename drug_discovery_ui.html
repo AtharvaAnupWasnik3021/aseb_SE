@@ -201,6 +201,40 @@
   .kv-key { font-size: 12px; color: var(--text3); flex-shrink: 0; }
   .kv-val { font-size: 12px; color: var(--text); text-align: right; word-break: break-all; font-family: 'JetBrains Mono', monospace; }
 
+  .structure-preview-btn {
+    margin-top: 12px;
+    width: 100%;
+    padding: 9px 12px;
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius-sm);
+    background: var(--bg3);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 12px;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .structure-preview-btn:hover {
+    background: var(--bg4);
+    border-color: var(--accent);
+  }
+
+  .structure-viewer {
+    margin-top: 12px;
+    width: 100%;
+    height: 320px;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    border: 0.5px solid var(--border2);
+    background: #000;
+  }
+
+  .structure-viewer iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+
   .signals-block { margin-top: 8px; }
   .sig { display: flex; align-items: flex-start; gap: 6px; padding: 2px 0; font-size: 12px; }
   .sig-pos { color: var(--green); }
@@ -323,6 +357,10 @@
           </div>
         </div>
         <div class="kv-block" id="struct-kv"></div>
+        <button class="structure-preview-btn" id="show-structure-btn" style="display:none;">
+          View 3D Structure
+        </button>
+        <div class="structure-viewer" id="structure-viewer" style="display:none;"></div>
       </div>
 
       <div class="agent-card card-bio">
@@ -427,14 +465,85 @@
     document.getElementById('verdict-rec').textContent = decision.recommendation || '';
 
     // Structure
-    const st = agents.structure || {};
-    document.getElementById('struct-score').textContent = pct(st.druggability_score);
-    document.getElementById('struct-verdict').textContent = st.assessment || '';
-    document.getElementById('struct-kv').innerHTML =
-      kv('Volume', st.volume ? st.volume + ' pts' : null) +
-      kv('Depth', st.depth !== undefined ? st.depth + ' Å' : null) +
-      kv('Hydrophobicity', st.hydrophobic_ratio !== undefined ? pct(st.hydrophobic_ratio) : null) +
-      kv('Pocket residues', st.pocket_residues ? st.pocket_residues.length : (st.residue_count || null));
+ 
+// Structure
+const st = agents.structure || {};
+
+document.getElementById('struct-score').textContent =
+  pct(st.druggability_score);
+
+document.getElementById('struct-verdict').textContent =
+  st.assessment || '';
+
+document.getElementById('struct-kv').innerHTML =
+  kv('Volume', st.volume ? st.volume + ' pts' : null) +
+  kv('Depth', st.depth !== undefined ? st.depth + ' Å' : null) +
+  kv(
+    'Hydrophobicity',
+    st.hydrophobic_ratio !== undefined
+      ? pct(st.hydrophobic_ratio)
+      : null
+  ) +
+  kv(
+    'Pocket residues',
+    st.pocket_residues
+      ? st.pocket_residues.length
+      : (st.residue_count || null)
+  );
+
+// 3D Structure Viewer
+const pdbId =
+  st.pdb_id ||
+  document.getElementById('protein_input').value.trim();
+
+const structureBtn =
+  document.getElementById('show-structure-btn');
+
+const structureViewer =
+  document.getElementById('structure-viewer');
+
+if (pdbId) {
+
+  structureBtn.style.display = 'block';
+
+  structureBtn.onclick = () => {
+
+    if (
+      structureViewer.style.display === 'none' ||
+      structureViewer.style.display === ''
+    ) {
+
+      structureViewer.style.display = 'block';
+
+      structureViewer.innerHTML =
+        '<iframe ' +
+        'src="https://molstar.org/viewer/?pdb=' + pdbId + '" ' +
+        'title="3D Structure Viewer" ' +
+        'style="width:100%;height:100%;border:none;background:black;" ' +
+        'allowfullscreen>' +
+        '</iframe>';
+
+      structureBtn.textContent = 'Hide 3D Structure';
+
+    } else {
+
+      structureViewer.style.display = 'none';
+
+      structureViewer.innerHTML = '';
+
+      structureBtn.textContent = 'View 3D Structure';
+    }
+  };
+
+} else {
+
+  structureBtn.style.display = 'none';
+
+  structureViewer.style.display = 'none';
+
+  structureViewer.innerHTML = '';
+}
+
 
     // Biology
     const bio = agents.biology || {};
