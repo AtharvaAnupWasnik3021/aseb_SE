@@ -228,6 +228,14 @@ def run_analysis(pdb_file: str):
 # -------------------------------
 @app.get("/")
 def serve_ui():
+    return FileResponse("login.html")
+
+@app.get("/login")
+def serve_login():
+    return FileResponse("login.html")
+
+@app.get("/drug_discovery_ui.html")
+def serve_ui():
     return FileResponse("drug_discovery_ui.html")
 
 @app.post("/analyze")
