@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Login — Drug Discovery Pipeline</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0f12;
+    --bg2: #141720;
+    --bg3: #1c2030;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #e8eaf0;
+    --text2: #8b90a8;
+    --text3: #555c78;
+    --accent: #6c8cf7;
+    --accent2: #4a6cf7;
+    --red: #f87171;
+    --red-bg: rgba(248,113,113,0.1);
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+  }
+
+  /* subtle grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(108,140,247,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(108,140,247,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .card {
+    background: var(--bg2);
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 2.5rem 2rem;
+    width: 100%;
+    max-width: 380px;
+    position: relative;
+    /* top accent bar */
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent2), #a78bfa);
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+
+  .logo-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 1.75rem;
+  }
+  .logo-icon {
+    width: 34px; height: 34px;
+    background: linear-gradient(135deg, var(--accent2), #a78bfa);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .logo-text {}
+  .logo-title {
+    font-size: 14px; font-weight: 600; color: var(--text);
+    line-height: 1.2;
+  }
+  .logo-sub {
+    font-size: 11px; color: var(--text3);
+    letter-spacing: 0.04em;
+  }
+
+  h1 {
+    font-size: 20px; font-weight: 600;
+    color: var(--text); letter-spacing: -0.02em;
+    margin-bottom: 4px;
+  }
+  .sub {
+    font-size: 13px; color: var(--text2);
+    margin-bottom: 1.75rem;
+  }
+
+  .field { margin-bottom: 14px; }
+  .field label {
+    display: block;
+    font-size: 11px; color: var(--text2);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    margin-bottom: 5px;
+  }
+  .field input {
+    width: 100%; padding: 10px 12px;
+    background: var(--bg3);
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius-sm);
+    color: var(--text); font-size: 14px;
+    font-family: inherit; outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .field input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(108,140,247,0.12);
+  }
+  .field input::placeholder { color: var(--text3); }
+
+  .error-bar {
+    display: none;
+    background: var(--red-bg);
+    border: 0.5px solid rgba(248,113,113,0.25);
+    border-radius: var(--radius-sm);
+    color: var(--red);
+    font-size: 13px;
+    padding: 9px 12px;
+    margin-bottom: 14px;
+  }
+
+  .btn {
+    width: 100%; padding: 11px;
+    background: var(--accent2); color: #fff;
+    border: none; border-radius: var(--radius-sm);
+    font-size: 14px; font-weight: 500;
+    font-family: inherit; cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    margin-top: 4px;
+  }
+  .btn:hover { background: var(--accent); }
+  .btn:active { transform: scale(0.99); }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  .hint {
+    font-size: 11px; color: var(--text3);
+    text-align: center; margin-top: 1.25rem;
+    line-height: 1.6;
+  }
+  .hint span { color: var(--text2); }
+
+  .pills {
+    display: flex; gap: 6px; justify-content: center;
+    margin-top: 1.5rem; flex-wrap: wrap;
+  }
+  .pill {
+    font-size: 11px; padding: 3px 9px;
+    border: 0.5px solid var(--border);
+    border-radius: 20px; color: var(--text3);
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="logo-row">
+    <div class="logo-icon">⬡</div>
+    <div class="logo-text">
+      <div class="logo-title">Drug Discovery</div>
+      <div class="logo-sub">Target Assessment Pipeline</div>
+    </div>
+  </div>
+
+  <h1>Sign in</h1>
+  <p class="sub">Enter your credentials to continue</p>
+
+  <div class="error-bar" id="error-bar">Incorrect username or password.</div>
+
+  <div class="field">
+    <label>Username</label>
+    <input id="username" type="text" placeholder="Enter username" autocomplete="username" />
+  </div>
+  <div class="field">
+    <label>Password</label>
+    <input id="password" type="password" placeholder="Enter password" autocomplete="current-password" />
+  </div>
+
+  <button class="btn" id="login-btn" onclick="doLogin()">Sign in</button>
+
+  <p class="hint">
+    Default credentials — <span>admin / admin123</span>
+  </p>
+
+  <div class="pills">
+    <span class="pill">Structure</span>
+    <span class="pill">Biology</span>
+    <span class="pill">Safety</span>
+    <span class="pill">Chemistry</span>
+  </div>
+</div>
+
+<script>
+  // Press Enter to submit
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+
+  // Hardcoded credentials — replace as needed
+  const USERS = {
+    'admin': 'admin123',
+    'researcher': 'discovery2024',
+  };
+
+  function doLogin() {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    const errorBar = document.getElementById('error-bar');
+    const btn = document.getElementById('login-btn');
+
+    errorBar.style.display = 'none';
+
+    if (!username || !password) {
+      errorBar.textContent = 'Please enter both username and password.';
+      errorBar.style.display = 'block';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Signing in…';
+
+    // Simulate a brief auth delay
+    setTimeout(() => {
+      if (USERS[username] && USERS[username] === password) {
+        // Store session and redirect
+        sessionStorage.setItem('dd_auth', username);
+        window.location.href = 'drug_discovery_ui.html';
+      } else {
+        errorBar.textContent = 'Incorrect username or password.';
+        errorBar.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Sign in';
+        document.getElementById('password').value = '';
+        document.getElementById('password').focus();
+      }
+    }, 400);
+  }
+</script>
+</body>
+</html>

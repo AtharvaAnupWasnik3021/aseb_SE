@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Drug Discovery Pipeline</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0f12;
+    --bg2: #141720;
+    --bg3: #1c2030;
+    --bg4: #242840;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #e8eaf0;
+    --text2: #8b90a8;
+    --text3: #555c78;
+    --accent: #6c8cf7;
+    --accent2: #4a6cf7;
+    --green: #34d399;
+    --green-bg: rgba(52,211,153,0.1);
+    --amber: #fbbf24;
+    --amber-bg: rgba(251,191,36,0.1);
+    --red: #f87171;
+    --red-bg: rgba(248,113,113,0.1);
+    --teal: #2dd4bf;
+    --purple: #a78bfa;
+    --blue: #60a5fa;
+    --struct-c: #2dd4bf;
+    --bio-c: #a78bfa;
+    --safe-c: #fbbf24;
+    --chem-c: #60a5fa;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  .page {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 4.5rem 1.5rem 4rem;
+  }
+
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0;
+    height: 44px;
+    background: rgba(13,15,18,0.92);
+    border-bottom: 0.5px solid rgba(255,255,255,0.07);
+    backdrop-filter: blur(10px);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 1.5rem;
+    z-index: 100;
+  }
+  .topbar-left { font-size: 12px; color: var(--text3); letter-spacing: 0.04em; }
+  .topbar-left span { color: var(--text2); }
+  .logout-btn {
+    font-size: 12px; padding: 4px 12px;
+    border: 0.5px solid var(--border2);
+    border-radius: 20px; color: var(--text2);
+    background: transparent; cursor: pointer;
+    font-family: inherit; transition: all 0.12s;
+  }
+  .logout-btn:hover { color: var(--red); border-color: rgba(248,113,113,0.4); }
+
+  /* Header */
+  .header { margin-bottom: 2rem; }
+  .header-eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .header-title {
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+  }
+  .header-sub { font-size: 13px; color: var(--text2); }
+  .header-pills { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+  .header-pill {
+    font-size: 11px; padding: 3px 9px;
+    border: 0.5px solid var(--border2);
+    border-radius: 20px; color: var(--text2);
+  }
+
+  /* Form */
+  .form-card {
+    background: var(--bg2);
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .form-label-row {
+    font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--text3); margin-bottom: 14px;
+  }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+  .field label {
+    display: block; font-size: 11px; color: var(--text2);
+    letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 5px;
+  }
+  .field input {
+    width: 100%; padding: 9px 12px; font-size: 14px;
+    background: var(--bg3); border: 0.5px solid var(--border2);
+    border-radius: var(--radius-sm); color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    outline: none; transition: border-color 0.15s;
+  }
+  .field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(108,140,247,0.1); }
+  .field input::placeholder { color: var(--text3); }
+  .run-btn {
+    width: 100%; padding: 11px; font-size: 14px; font-weight: 500;
+    background: var(--accent2); color: #fff;
+    border: none; border-radius: var(--radius-sm); cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    font-family: inherit; letter-spacing: 0.02em;
+  }
+  .run-btn:hover:not(:disabled) { background: var(--accent); }
+  .run-btn:active:not(:disabled) { transform: scale(0.99); }
+  .run-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Status */
+  .status-bar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; border-radius: var(--radius-sm);
+    font-size: 13px; margin-bottom: 1.25rem;
+    border: 0.5px solid transparent;
+  }
+  .status-running { background: rgba(108,140,247,0.1); border-color: rgba(108,140,247,0.25); color: var(--accent); }
+  .status-success { background: var(--green-bg); border-color: rgba(52,211,153,0.25); color: var(--green); }
+  .status-error   { background: var(--red-bg); border-color: rgba(248,113,113,0.25); color: var(--red); }
+  .hidden { display: none; }
+  .pulse { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: pulse 1.1s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:0.3;transform:scale(0.7);} }
+
+  /* Verdict card */
+  .verdict-card {
+    background: var(--bg2); border: 0.5px solid var(--border2);
+    border-radius: var(--radius); padding: 1.5rem;
+    margin-bottom: 1.25rem;
+  }
+  .verdict-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 12px; }
+  .verdict-left-label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); margin-bottom: 6px; }
+  .verdict-text { font-size: 16px; font-weight: 500; color: var(--text); }
+  .verdict-badge {
+    font-size: 12px; font-weight: 500; padding: 5px 14px;
+    border-radius: 20px; white-space: nowrap;
+  }
+  .badge-use     { background: var(--green-bg); color: var(--green); border: 0.5px solid rgba(52,211,153,0.3); }
+  .badge-consider{ background: var(--amber-bg); color: var(--amber); border: 0.5px solid rgba(251,191,36,0.3); }
+  .badge-hold    { background: var(--amber-bg); color: var(--amber); border: 0.5px solid rgba(251,191,36,0.3); }
+  .badge-reject  { background: var(--red-bg);   color: var(--red);   border: 0.5px solid rgba(248,113,113,0.3); }
+
+  .score-row { display: flex; align-items: flex-end; gap: 2rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+  .score-big-block {}
+  .score-big { font-size: 48px; font-weight: 600; color: var(--text); line-height: 1; letter-spacing: -0.03em; }
+  .score-big-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 3px; }
+  .bars-block { flex: 1; min-width: 200px; }
+  .bar-row { display: flex; align-items: center; gap: 10px; margin: 7px 0; }
+  .bar-lbl { font-size: 12px; color: var(--text2); width: 68px; flex-shrink: 0; }
+  .bar-track { flex: 1; height: 5px; background: var(--bg4); border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; transition: width 0.7s cubic-bezier(.4,0,.2,1); }
+  .bar-val { font-size: 12px; color: var(--text2); width: 34px; text-align: right; font-family: 'JetBrains Mono', monospace; }
+
+  .verdict-rec {
+    font-size: 13px; color: var(--text2); line-height: 1.7;
+    padding-top: 1rem; border-top: 0.5px solid var(--border);
+  }
+
+  /* Agents grid */
+  .agents-title {
+    font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--text3); margin-bottom: 10px;
+  }
+  .agents-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 600px) { .agents-grid { grid-template-columns: 1fr; } }
+
+  .agent-card {
+    background: var(--bg2); border: 0.5px solid var(--border2);
+    border-radius: var(--radius); padding: 1.1rem 1.25rem;
+    position: relative; overflow: hidden;
+  }
+  .agent-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  }
+  .card-struct::before { background: var(--struct-c); }
+  .card-bio::before    { background: var(--bio-c); }
+  .card-safe::before   { background: var(--safe-c); }
+  .card-chem::before   { background: var(--chem-c); }
+
+  .agent-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.9rem; }
+  .agent-name-row { display: flex; align-items: center; gap: 7px; }
+  .agent-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .dot-struct { background: var(--struct-c); }
+  .dot-bio    { background: var(--bio-c); }
+  .dot-safe   { background: var(--safe-c); }
+  .dot-chem   { background: var(--chem-c); }
+  .agent-name { font-size: 12px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: 0.06em; }
+  .agent-score-block { text-align: right; }
+  .agent-score { font-size: 28px; font-weight: 600; color: var(--text); letter-spacing: -0.02em; line-height: 1; }
+  .agent-verdict-lbl { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  .kv-block { border-top: 0.5px solid var(--border); padding-top: 0.75rem; }
+  .kv-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 3px 0; gap: 8px; }
+  .kv-key { font-size: 12px; color: var(--text3); flex-shrink: 0; }
+  .kv-val { font-size: 12px; color: var(--text); text-align: right; word-break: break-all; font-family: 'JetBrains Mono', monospace; }
+
+  .structure-preview-btn {
+    margin-top: 12px;
+    width: 100%;
+    padding: 9px 12px;
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius-sm);
+    background: var(--bg3);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 12px;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .structure-preview-btn:hover {
+    background: var(--bg4);
+    border-color: var(--accent);
+  }
+
+  .structure-viewer {
+    margin-top: 12px;
+    width: 100%;
+    height: 320px;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    border: 0.5px solid var(--border2);
+    background: #000;
+  }
+
+  .structure-viewer iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+
+  .signals-block { margin-top: 8px; }
+  .sig { display: flex; align-items: flex-start; gap: 6px; padding: 2px 0; font-size: 12px; }
+  .sig-pos { color: var(--green); }
+  .sig-warn { color: var(--amber); }
+  .sig-icon { flex-shrink: 0; font-size: 10px; margin-top: 1px; }
+
+  .chem-samples-block { margin-top: 10px; border-top: 0.5px solid var(--border); padding-top: 10px; }
+  .chem-samples-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 7px; }
+  .chem-sample {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 5px 0; border-bottom: 0.5px solid var(--border);
+  }
+  .chem-sample:last-child { border-bottom: none; }
+  .chem-mol { font-size: 11px; color: var(--text2); font-family: 'JetBrains Mono', monospace; }
+  .chem-right { display: flex; align-items: center; gap: 8px; }
+  .chem-type { font-size: 11px; color: var(--text3); }
+  .score-pill { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
+  .pill-hi  { background: var(--green-bg); color: var(--green); }
+  .pill-mid { background: var(--amber-bg); color: var(--amber); }
+  .pill-lo  { background: var(--red-bg);   color: var(--red); }
+  </style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-left">Signed in as <span id="topbar-user">—</span></div>
+  <button class="logout-btn" onclick="logout()">Sign out</button>
+</div>
+<div class="page">
+
+  <div class="header">
+    <div class="header-eyebrow">Drug Discovery</div>
+    <div class="header-title">Target Assessment Pipeline</div>
+    <div class="header-sub">Integrated multi-agent evaluation for drug target selection</div>
+    <div class="header-pills">
+      <span class="header-pill">Structure</span>
+      <span class="header-pill">Biology</span>
+      <span class="header-pill">Safety</span>
+      <span class="header-pill">Chemistry</span>
+    </div>
+  </div>
+
+  <div class="form-card">
+    <div class="form-label-row">Input parameters</div>
+    <div class="form-grid">
+      <div class="field">
+        <label>PDB ID</label>
+        <input id="protein_input" type="text" placeholder="e.g. 2ITX" value="2ITX" />
+      </div>
+      <div class="field">
+        <label>Gene symbol</label>
+        <input id="gene_symbol" type="text" placeholder="e.g. EGFR" value="EGFR" />
+      </div>
+      <div class="field">
+        <label>Disease</label>
+        <input id="disease_name" type="text" placeholder="e.g. breast cancer" value="breast cancer" />
+      </div>
+    </div>
+    <button class="run-btn" id="run-btn" onclick="runPipeline()">Run pipeline</button>
+  </div>
+
+  <div id="status-bar" class="status-bar" style="display:none;"></div>
+
+  <div id="debug-panel" style="display:none; margin-bottom:1.25rem; background:#1a0f0f; border:0.5px solid rgba(248,113,113,0.3); border-radius:10px; padding:1rem 1.25rem;">
+    <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:#f87171; margin-bottom:8px;" id="debug-label">Debug output</div>
+    <pre id="debug-pre" style="font-size:12px; color:#e8b4b4; font-family:'JetBrains Mono',monospace; white-space:pre-wrap; word-break:break-all; max-height:300px; overflow-y:auto; line-height:1.5;"></pre>
+    <div style="margin-top:10px; font-size:12px; color:#f87171; opacity:0.7;">Open browser DevTools (F12) &rarr; Console &amp; Network tabs for more detail.</div>
+  </div>
+
+  <div id="results" class="hidden">
+
+    <div class="verdict-card">
+      <div class="verdict-top">
+        <div>
+          <div class="verdict-left-label">Final decision</div>
+          <div class="verdict-text" id="verdict-text"></div>
+        </div>
+        <span class="verdict-badge" id="verdict-badge"></span>
+      </div>
+
+      <div class="score-row">
+        <div class="score-big-block">
+          <div class="score-big" id="integrated-score">—</div>
+          <div class="score-big-label">integrated score</div>
+        </div>
+        <div class="bars-block">
+          <div class="bar-row">
+            <span class="bar-lbl">structure</span>
+            <div class="bar-track"><div class="bar-fill" id="bar-struct" style="background:var(--struct-c);width:0%"></div></div>
+            <span class="bar-val" id="val-struct">—</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-lbl">biology</span>
+            <div class="bar-track"><div class="bar-fill" id="bar-bio" style="background:var(--bio-c);width:0%"></div></div>
+            <span class="bar-val" id="val-bio">—</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-lbl">safety</span>
+            <div class="bar-track"><div class="bar-fill" id="bar-safe" style="background:var(--safe-c);width:0%"></div></div>
+            <span class="bar-val" id="val-safe">—</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-lbl">chemistry</span>
+            <div class="bar-track"><div class="bar-fill" id="bar-chem" style="background:var(--chem-c);width:0%"></div></div>
+            <span class="bar-val" id="val-chem">—</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="verdict-rec" id="verdict-rec"></div>
+    </div>
+
+    <div class="agents-title">Agent outputs</div>
+    <div class="agents-grid">
+
+      <div class="agent-card card-struct">
+        <div class="agent-header">
+          <div class="agent-name-row">
+            <div class="agent-dot dot-struct"></div>
+            <span class="agent-name">Structure</span>
+          </div>
+          <div class="agent-score-block">
+            <div class="agent-score" id="struct-score">—</div>
+            <div class="agent-verdict-lbl" id="struct-verdict"></div>
+          </div>
+        </div>
+        <div class="kv-block" id="struct-kv"></div>
+        <button class="structure-preview-btn" id="show-structure-btn" style="display:none;">
+          View 3D Structure
+        </button>
+        <div class="structure-viewer" id="structure-viewer" style="display:none;"></div>
+      </div>
+
+      <div class="agent-card card-bio">
+        <div class="agent-header">
+          <div class="agent-name-row">
+            <div class="agent-dot dot-bio"></div>
+            <span class="agent-name">Biology</span>
+          </div>
+          <div class="agent-score-block">
+            <div class="agent-score" id="bio-score">—</div>
+            <div class="agent-verdict-lbl" id="bio-verdict"></div>
+          </div>
+        </div>
+        <div class="kv-block" id="bio-kv"></div>
+        <div class="signals-block" id="bio-signals"></div>
+      </div>
+
+      <div class="agent-card card-safe">
+        <div class="agent-header">
+          <div class="agent-name-row">
+            <div class="agent-dot dot-safe"></div>
+            <span class="agent-name">Safety</span>
+          </div>
+          <div class="agent-score-block">
+            <div class="agent-score" id="safe-score">—</div>
+            <div class="agent-verdict-lbl" id="safe-verdict"></div>
+          </div>
+        </div>
+        <div class="kv-block" id="safe-kv"></div>
+      </div>
+
+      <div class="agent-card card-chem">
+        <div class="agent-header">
+          <div class="agent-name-row">
+            <div class="agent-dot dot-chem"></div>
+            <span class="agent-name">Chemistry</span>
+          </div>
+          <div class="agent-score-block">
+            <div class="agent-score" id="chem-score">—</div>
+            <div class="agent-verdict-lbl" id="chem-verdict"></div>
+          </div>
+        </div>
+        <div class="kv-block" id="chem-kv"></div>
+        <div id="chem-samples"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  function showStatus(msg, type) {
+    const bar = document.getElementById('status-bar');
+    bar.className = 'status-bar status-' + type;
+    bar.style.display = 'flex';
+    bar.innerHTML = type === 'running' ? '<span class="pulse"></span>&nbsp;' + msg : msg;
+  }
+
+  function kv(key, val) {
+    if (val === null || val === undefined || val === '') return '';
+    return `<div class="kv-row"><span class="kv-key">${key}</span><span class="kv-val">${val}</span></div>`;
+  }
+
+  function pct(v) { return v !== undefined && v !== null ? Math.round(v * 100) + '%' : '—'; }
+
+  function verdictClass(v) {
+    if (!v) return '';
+    const u = v.toUpperCase();
+    if (u.startsWith('USE')) return 'badge-use';
+    if (u.startsWith('CONSIDER')) return 'badge-consider';
+    if (u.startsWith('HOLD')) return 'badge-hold';
+    return 'badge-reject';
+  }
+
+  function pillClass(s) {
+    return s >= 0.7 ? 'pill-hi' : s >= 0.45 ? 'pill-mid' : 'pill-lo';
+  }
+
+  function setBar(barId, valId, raw, maxWeight) {
+    const pctWidth = Math.min(((raw || 0) / maxWeight) * 100, 100);
+    document.getElementById(barId).style.width = pctWidth + '%';
+    document.getElementById(valId).textContent = pct(raw / maxWeight);
+  }
+
+  function renderResults(data) {
+    const decision = data.decision || {};
+    const agents = data.agents || {};
+    const comps = decision.components || {};
+
+    // Verdict
+    document.getElementById('verdict-text').textContent = decision.final_verdict || '—';
+    const badge = document.getElementById('verdict-badge');
+    badge.textContent = (decision.final_verdict || '').split(' ')[0];
+    badge.className = 'verdict-badge ' + verdictClass(decision.final_verdict);
+
+    // Score
+    document.getElementById('integrated-score').textContent = pct(decision.integrated_score);
+    setBar('bar-struct', 'val-struct', comps.structure, 0.25);
+    setBar('bar-bio',    'val-bio',    comps.biology,   0.40);
+    setBar('bar-safe',   'val-safe',   comps.safety,    0.20);
+    setBar('bar-chem',   'val-chem',   comps.chemistry, 0.15);
+    document.getElementById('verdict-rec').textContent = decision.recommendation || '';
+
+    // Structure
+ 
+// Structure
+const st = agents.structure || {};
+
+document.getElementById('struct-score').textContent =
+  pct(st.druggability_score);
+
+document.getElementById('struct-verdict').textContent =
+  st.assessment || '';
+
+document.getElementById('struct-kv').innerHTML =
+  kv('Volume', st.volume ? st.volume + ' pts' : null) +
+  kv('Depth', st.depth !== undefined ? st.depth + ' Å' : null) +
+  kv(
+    'Hydrophobicity',
+    st.hydrophobic_ratio !== undefined
+      ? pct(st.hydrophobic_ratio)
+      : null
+  ) +
+  kv(
+    'Pocket residues',
+    st.pocket_residues
+      ? st.pocket_residues.length
+      : (st.residue_count || null)
+  );
+
+// 3D Structure Viewer
+const pdbId =
+  st.pdb_id ||
+  document.getElementById('protein_input').value.trim();
+
+const structureBtn =
+  document.getElementById('show-structure-btn');
+
+const structureViewer =
+  document.getElementById('structure-viewer');
+
+if (pdbId) {
+
+  structureBtn.style.display = 'block';
+
+  structureBtn.onclick = () => {
+
+    if (
+      structureViewer.style.display === 'none' ||
+      structureViewer.style.display === ''
+    ) {
+
+      structureViewer.style.display = 'block';
+
+      structureViewer.innerHTML =
+        '<iframe ' +
+        'src="https://molstar.org/viewer/?pdb=' + pdbId + '" ' +
+        'title="3D Structure Viewer" ' +
+        'style="width:100%;height:100%;border:none;background:black;" ' +
+        'allowfullscreen>' +
+        '</iframe>';
+
+      structureBtn.textContent = 'Hide 3D Structure';
+
+    } else {
+
+      structureViewer.style.display = 'none';
+
+      structureViewer.innerHTML = '';
+
+      structureBtn.textContent = 'View 3D Structure';
+    }
+  };
+
+} else {
+
+  structureBtn.style.display = 'none';
+
+  structureViewer.style.display = 'none';
+
+  structureViewer.innerHTML = '';
+}
+
+
+    // Biology
+    const bio = agents.biology || {};
+    document.getElementById('bio-score').textContent = pct(bio.overall_score);
+    document.getElementById('bio-verdict').textContent = bio.verdict || '';
+    document.getElementById('bio-kv').innerHTML =
+      kv('Disease', bio.disease) +
+      kv('Gene name', bio.gene_name) +
+      kv('Ensembl', bio.ensembl_id);
+
+    let sigHtml = '';
+    (bio.positive_signals || []).forEach(s => {
+      sigHtml += `<div class="sig sig-pos"><span class="sig-icon">&#10003;</span>${s}</div>`;
+    });
+    (bio.warning_signals || []).forEach(s => {
+      sigHtml += `<div class="sig sig-warn"><span class="sig-icon">&#9651;</span>${s}</div>`;
+    });
+    document.getElementById('bio-signals').innerHTML = sigHtml;
+
+    // Safety
+    const safe = agents.safety || {};
+    document.getElementById('safe-score').textContent = pct(safe.safety_index);
+    document.getElementById('safe-verdict').textContent = safe.safety_verdict || '';
+    const sc = safe.components || {};
+    document.getElementById('safe-kv').innerHTML =
+      kv('Tissue safety', sc.tissue !== undefined ? pct(sc.tissue) : null) +
+      kv('Off-target', sc.off_target !== undefined ? pct(sc.off_target) : null) +
+      kv('Adverse proxy', sc.adverse !== undefined ? pct(sc.adverse) : null) +
+      (safe.warning_signals || []).map(w => kv('Warning', w)).join('');
+
+    // Chemistry
+    const chem = agents.chemistry || {};
+    document.getElementById('chem-score').textContent = pct(chem.chemistry_score);
+    document.getElementById('chem-verdict').textContent = chem.chemistry_verdict || '';
+    document.getElementById('chem-kv').innerHTML =
+      kv('ChEMBL ID', chem.chembl_id) +
+      kv('UniProt', chem.uniprot_id) +
+      kv('Activities found', chem.activity_count);
+
+    const samples = chem.sample_results || [];
+    let sampHtml = '';
+    if (samples.length) {
+      sampHtml = `<div class="chem-samples-block"><div class="chem-samples-label">Top ligands</div>`;
+      samples.forEach(s => {
+        sampHtml += `<div class="chem-sample">
+          <span class="chem-mol">${s.molecule_chembl_id}</span>
+          <div class="chem-right">
+            <span class="chem-type">${s.standard_type} ${s.standard_value || ''}${s.standard_units || ''}</span>
+            <span class="score-pill ${pillClass(s.score)}">${pct(s.score)}</span>
+          </div>
+        </div>`;
+      });
+      sampHtml += '</div>';
+    }
+    document.getElementById('chem-samples').innerHTML = sampHtml;
+
+    const results = document.getElementById('results');
+    results.classList.remove('hidden');
+    results.style.display = 'block';
+  }
+
+  function showDebug(label, content) {
+    const panel = document.getElementById('debug-panel');
+    const pre = document.getElementById('debug-pre');
+    panel.style.display = 'block';
+    document.getElementById('debug-label').textContent = label;
+    pre.textContent = typeof content === 'string' ? content : JSON.stringify(content, null, 2);
+  }
+
+  async function runPipeline() {
+    const protein_input = document.getElementById('protein_input').value.trim();
+    const gene_symbol   = document.getElementById('gene_symbol').value.trim();
+    const disease_name  = document.getElementById('disease_name').value.trim();
+    const baseUrl       = '';
+
+    if (!protein_input || !gene_symbol || !disease_name) {
+      showStatus('Please fill in all three fields.', 'error');
+      return;
+    }
+
+    document.getElementById('results').classList.add('hidden');
+    document.getElementById('debug-panel').style.display = 'none';
+    document.getElementById('run-btn').disabled = true;
+    showStatus('Running pipeline — this can take 30–90 seconds…', 'running');
+
+    let rawText = '';
+    try {
+      const res = await fetch(`${baseUrl}/run`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ protein_input, gene_symbol, disease_name })
+      });
+
+      rawText = await res.text();
+
+      if (!res.ok) {
+        showDebug('Server error response (HTTP ' + res.status + ')', rawText);
+        showStatus('Server error ' + res.status + ' — see debug panel below.', 'error');
+        return;
+      }
+
+      let data;
+      try {
+        data = JSON.parse(rawText);
+      } catch(parseErr) {
+        showDebug('Could not parse JSON from server', rawText.slice(0, 2000));
+        showStatus('Bad JSON from server — see debug panel below.', 'error');
+        return;
+      }
+
+      if (data.status === 'FAILED') {
+        showDebug('Pipeline returned FAILED', data);
+        showStatus('Pipeline failed: ' + (data.reason || 'unknown reason') + ' — see debug panel below.', 'error');
+        return;
+      }
+
+      showStatus('Pipeline complete — results loaded.', 'success');
+      renderResults(data);
+
+    } catch (err) {
+      // Network/CORS errors land here
+      let hint = '';
+      if (err.message.includes('fetch') || err.message.includes('Failed') || err.message === 'Load failed' || err.name === 'TypeError') {
+        hint = ' (Likely CORS or the backend is not reachable at ' + baseUrl + ')';
+      }
+      showDebug('JavaScript exception', err.name + ': ' + err.message + hint + '\n\nRaw response text (if any):\n' + rawText);
+      showStatus('Connection error: ' + err.message + hint, 'error');
+    } finally {
+      document.getElementById('run-btn').disabled = false;
+    }
+  }
+</script>
+<script>
+  // Auth guard
+  const ddUser = sessionStorage.getItem('dd_auth');
+  if (!ddUser) {
+    window.location.replace('login.html');
+  } else {
+    const el = document.getElementById('topbar-user');
+    if (el) el.textContent = ddUser;
+  }
+  function logout() {
+    sessionStorage.removeItem('dd_auth');
+    window.location.replace('login');
+  }
+</script>
+</body>
+</html>

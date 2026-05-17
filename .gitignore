@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Python
 __pycache__/
 *.py[cod]
@@ -26,3 +27,7 @@ __MACOSX/
 # Local env files
 .env
 .env.*
+=======
+**/__pycache__/
+*.pyc
+>>>>>>> cacc268184d8ae5c5acde55efa2a097cc48d8cd4

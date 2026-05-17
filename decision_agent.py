@@ -181,10 +181,10 @@ class DecisionAgent:
     def run(self) -> Dict:
         print("\n=== DRUG DISCOVERY DECISION PIPELINE ===")
 
-        if not self.run_structure():
+        if self.run_structure() is None:
             return {"status": "FAILED", "reason": "Structure agent failed"}
 
-        if not self.run_biology():
+        if self.run_biology() is None:
             return {"status": "FAILED", "reason": "Biology agent failed"}
 
         self.run_safety()
