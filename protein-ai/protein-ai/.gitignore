@@ -1,0 +1,12 @@
+node_modules/
+dist/
+tools/
+*.log
+node-v*-win-x64.zip
+.DS_Store
+
+backend/__pycache__/
+backend/tests/__pycache__/
+backend/*.pdb
+backend/*.ent
+backend/final_visualization.html

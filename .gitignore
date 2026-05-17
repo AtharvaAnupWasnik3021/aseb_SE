@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.verify-venv/
+
+# Generated analysis artifacts
+*.pdb
+*.ent
+final_output.json
+final_visualization.html
+protein_visualization.html
+
+# Frontend/build artifacts
+node_modules/
+dist/
+tools/
+*.log
+node-v*-win-x64.zip
+
+# macOS / archives
+.DS_Store
+__MACOSX/
+._*
+
+# Local env files
+.env
+.env.*
