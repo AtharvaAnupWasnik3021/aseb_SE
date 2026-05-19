@@ -1,0 +1,8 @@
+127.0.0.1 - - [17/May/2026 15:23:16] code 501, message Unsupported method ('HEAD')
+127.0.0.1 - - [17/May/2026 15:23:16] "HEAD /visualization HTTP/1.1" 501 -
+127.0.0.1 - - [17/May/2026 15:25:35] "POST /analyze HTTP/1.1" 200 -
+127.0.0.1 - - [17/May/2026 15:25:47] "GET /visualization HTTP/1.1" 200 -
+127.0.0.1 - - [17/May/2026 15:34:40] "POST /analyze HTTP/1.1" 200 -
+127.0.0.1 - - [17/May/2026 15:34:40] "GET /visualization HTTP/1.1" 200 -
+127.0.0.1 - - [17/May/2026 15:35:49] "POST /analyze HTTP/1.1" 200 -
+127.0.0.1 - - [17/May/2026 15:35:49] "GET /visualization HTTP/1.1" 200 -
